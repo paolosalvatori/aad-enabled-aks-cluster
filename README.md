@@ -17,4 +17,4 @@ The variables in the first part of the script contain the information necessary 
 - end date and years for registered applications and service principals
 - password for the AKS service principal (optional)
 
-The script contains comments and individual steps in the script are fully descriptive.  
+The script contains comments and individual steps are fully descriptive.  
