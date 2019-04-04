@@ -1,29 +1,50 @@
 #!/bin/bash
 
 # variables
-userPrincipalName="paolos_microsoft.com#EXT#@babo.onmicrosoft.com"
-userDisplayName="Paolo Salvatori"
-userPassword="Whatever1!"
+
+# data necessary to identify or create an admin user in the admin users group
+userPrincipalName="han.solo@babo.onmicrosoft.com" # user principal name
+userDisplayName="Han Solo" # user display name
+userPassword="Whatever1!" # user password. This field is used only when creating a new user
+
+# name and resource group name of the Log Analytics workspace used to monitor the AKS cluster. This data is optional.
 logAnalyticsName="BaboAksCluster"
 logAnalyticsResourceGroup="BaboAksLogAnalyticsResourceGroup"
-acrName="PaoloSalvatori"
-acrResourceGroup="ContainerRegistryResourceGroup"
+
+# name, resource group name and location of the Azure Kubernetes Service (AKS) cluster
 aksName="BaboAks"
 aksResourceGroup="BaboAksResourceGroup"
+location="WestEurope"
+
+# node count, node size, and ssh key location for AKS nodes
+nodeCount=5
+nodeSize="Standard_DS5_v2"
+sshKeyValue="/mnt/c/Users/hansolo/.ssh/id_rsa.pub"
+
+# name and resource group name of the Azure Container Registry used by the AKS cluster. 
+# The name of the cluster is also used to create or select an existing admin group in the Azure AD tenant.
+acrName="HanSolo"
+acrResourceGroup="ContainerRegistryResourceGroup"
+
+# name and tenantId of the Azure Active Directory tenant used by the AKS cluster for user authentication.
+# In the script, the Azure AD tenant used by the AKS cluster for user authentication, differs from the tenantId of the subscription.
+# ou can easily modify the script to use the same tenantId for both the subscription and user authentication.
+aksTenantName="babo"
+aksTenantId="769ea97c-d6f6-48f3-a452-7d6ef2e3c8cb"
+
+# service principal, server application and client application used by the AKS cluster
 aksServicePrincipal="BaboAksServicePrincipal"
 aksServerApplication="BaboAksServerApplication"
 aksClientApplication="BaboAksClientApplication"
-aksTenantName="babo"
-aksTenantId="769ea97c-d6f6-48f3-a452-7d6ef2e3c8cb"
-location="WestEurope"
+
+# end date and years for registered applications and service principals
 endDate="2050-12-31"
 years=50
+
+# password for the AKS service principal
 password="h0neym00n"
-location="WestEurope"
-appId=""
-nodeCount=5
-nodeSize="Standard_DS5_v2"
-sshKeyValue="/mnt/c/Users/paolos/.ssh/id_rsa.pub"
+
+# subscriptionId and tenantId of the current subscription
 subscriptionId=$(az account show --query id --output tsv)
 tenantId=$(az account show --query tenantId --output tsv)
 
