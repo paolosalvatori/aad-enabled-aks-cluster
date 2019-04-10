@@ -30,8 +30,8 @@ acrResourceGroup="ContainerRegistryResourceGroup"
 # In the script, the Azure AD tenant used by the AKS cluster for user authentication, differs from the tenantId of the subscription.
 # ou can easily modify the script to use the same tenantId for both the subscription and user authentication.
 aksTenantName="babo"
-aksTenantId="769ea97c-d6f6-48f3-a452-7d6ef2e3c8cb"
-
+aksTenantId="11111111-111111111-1111-111111111111"
+            
 # service principal, server application and client application used by the AKS cluster
 aksServicePrincipal="BaboAksServicePrincipal"
 aksServerApplication="BaboAksServerApplication"
@@ -62,7 +62,7 @@ fi
 echo "Retrieving the objectId of the ["$userPrincipalName"] user..."
 userObjectId=$(az ad user show --upn-or-object-id $userPrincipalName --query objectId --output tsv 2> /dev/null)
 
-if [[ -n userObjectId ]]; then
+if [[ -n $userObjectId ]]; then
     echo "["$userPrincipalName"] user already exists in ["$aksTenantId"] tenant with ["$userObjectId"] objectId"
 else
     echo "Failed to retrieve the objectId of the ["$userPrincipalName"] user"
@@ -70,7 +70,7 @@ else
 
     # create user in Azure AD
     userObjectId=$(az ad user create \
-    --display-name $userDisplayName \
+    --display-name "$userDisplayName" \
     --password $userPassword \
     --user-principal-name $userPrincipalName \
     --query objectId \
