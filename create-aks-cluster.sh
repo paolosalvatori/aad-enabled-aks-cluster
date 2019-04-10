@@ -2,15 +2,6 @@
 
 # variables
 
-# data necessary to identify or create an admin user in the admin users group
-userPrincipalName="han.solo@babo.onmicrosoft.com" # user principal name
-userDisplayName="Han Solo" # user display name
-userPassword="Whatever1!" # user password. This field is used only when creating a new user
-
-# name and resource group name of the Log Analytics workspace used to monitor the AKS cluster. This data is optional.
-logAnalyticsName="BaboAksCluster"
-logAnalyticsResourceGroup="BaboAksLogAnalyticsResourceGroup"
-
 # name, resource group name and location of the Azure Kubernetes Service (AKS) cluster
 aksName="BaboAks"
 aksResourceGroup="BaboAksResourceGroup"
@@ -47,6 +38,16 @@ password="h0neym00n"
 # subscriptionId and tenantId of the current subscription
 subscriptionId=$(az account show --query id --output tsv)
 tenantId=$(az account show --query tenantId --output tsv)
+
+# data necessary to identify or create an admin user in the admin users group
+userPrincipalName="han.solo@babo.onmicrosoft.com" # user principal name
+userDisplayName="Han Solo" # user display name
+userPassword="Whatever1!" # user password. This field is used only when creating a new user
+aksAdminsGroup=$aksName"Admins"
+
+# name and resource group name of the Log Analytics workspace used to monitor the AKS cluster. This data is optional.
+logAnalyticsName="BaboAksCluster"
+logAnalyticsResourceGroup="BaboAksLogAnalyticsResourceGroup"
 
 # login to the Azure AD tenant used for users
 currentTenantId=$(az login --tenant $aksTenantId --allow-no-subscriptions --query [0].tenantId --output tsv 2> /dev/null)
@@ -85,7 +86,6 @@ else
 fi
 
 # check it the AKS admins group already exists in the Azure AD tenant
-aksAdminsGroup=$aksName"Admins"
 echo "Checking if ["$aksAdminsGroup"] group actually exists in ["$aksTenantId"] tenant..."
 
 groupObjectId=$(az ad group show --group $aksAdminsGroup --query objectId --output tsv 2> /dev/null)
@@ -545,7 +545,7 @@ if [[ -z $userObjectId ]]; then
     exit
 fi
 
-echo "Creating admin cluster role binding for the ["$userPrincipalName"] user..."
+echo "Creating admin cluster role binding for the ["$aksAdminsGroup"] user group..."
 # Use the following manifest to create a ClusterRoleBinding for the admins group in Azure AD
 # This cluster role binding provides full access to all the namespaces in the cluster
 # for more information on Kubernetes RBAC, see https://kubernetes.io/docs/reference/access-authn-authz/rbac/
