@@ -302,7 +302,7 @@ else
 	echo "["$aksClientApplication"] client application already exists in ["$aksTenantId"] tenant with [$aksClientApplicationAppId] appId"
 fi
 
-# login to the Azure AD tenant used for users
+# login to the Azure AD tenant of the subscription hosting the AKS cluster
 currentTenantId=$(az login --subscription $subscriptionId --query [0].tenantId --output tsv 2> /dev/null)
 
 if [[ -n $currentTenantId ]] && [[ $currentTenantId == $tenantId ]]; then
