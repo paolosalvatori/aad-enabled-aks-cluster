@@ -541,7 +541,7 @@ else
     exit
 fi
 
-if [[ -z $userObjectId ]]; then 
+if [[ -z $groupObjectId ]]; then 
     exit
 fi
 
