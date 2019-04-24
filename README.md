@@ -4,7 +4,10 @@ author: paolosalvatori
 ---
 
 # Introduction #
-This bash script fully automates all the steps necessary to to build an Azure Kubernetes Service (AKS) cluster on Azure configured to use Azure Active Directory (AD) for user authentication, as explained at [Integrate Azure Active Directory with Azure Kubernetes Service](https://docs.microsoft.com/en-us/azure/aks/aad-integration).
+These two bash scripts fully automate all the steps necessary to to build an Azure Kubernetes Service (AKS) cluster on Azure configured to use Azure Active Directory (AD) for user authentication, as explained at [Integrate Azure Active Directory with Azure Kubernetes Service](https://docs.microsoft.com/en-us/azure/aks/aad-integration).
+
+- *create-aks-cluster-same-tenant*: this script uses the same Azure Active Directory tenant of the Azue subscription for user authentication.
+- *create-aks-cluster-different-tenant*: this script uses a separate Azure Active Directory tenant for user authentication other than the tenant used by the subscription.
 
 # Description #
 The variables in the first part of the script contain the information necessary to build the AKS cluster:
