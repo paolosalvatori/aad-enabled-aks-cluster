@@ -10,19 +10,13 @@ location="WestEurope"
 # node count, node size, and ssh key location for AKS nodes
 nodeCount=5
 nodeSize="Standard_DS5_v2"
-sshKeyValue="/mnt/c/Users/hansolo/.ssh/id_rsa.pub"
+sshKeyValue="/mnt/c/Users/paolos/.ssh/id_rsa.pub"
 
 # name and resource group name of the Azure Container Registry used by the AKS cluster. 
 # The name of the cluster is also used to create or select an existing admin group in the Azure AD tenant.
 acrName="HanSolo"
 acrResourceGroup="ContainerRegistryResourceGroup"
 
-# name and tenantId of the Azure Active Directory tenant used by the AKS cluster for user authentication.
-# In the script, the Azure AD tenant used by the AKS cluster for user authentication, differs from the tenantId of the subscription.
-# ou can easily modify the script to use the same tenantId for both the subscription and user authentication.
-aksTenantName="babo"
-aksTenantId="11111111-111111111-1111-111111111111"
-            
 # service principal, server application and client application used by the AKS cluster
 aksServicePrincipal="BaboAksServicePrincipal"
 aksServerApplication="BaboAksServerApplication"
@@ -40,110 +34,34 @@ subscriptionId=$(az account show --query id --output tsv)
 tenantId=$(az account show --query tenantId --output tsv)
 
 # data necessary to identify or create an admin user in the admin users group
-userPrincipalName="han.solo@babo.onmicrosoft.com" # user principal name
-userDisplayName="Han Solo" # user display name
-userPassword="Whatever1!" # user password. This field is used only when creating a new user
-aksAdminsGroup=$aksName"Admins"
+userPrincipalName="paolos@microsoft.com"
+userDisplayName="Paolo Salvatori"
+userPassword="Whatever1!"
 
 # name and resource group name of the Log Analytics workspace used to monitor the AKS cluster. This data is optional.
 logAnalyticsName="BaboAksCluster"
 logAnalyticsResourceGroup="BaboAksLogAnalyticsResourceGroup"
-
-# login to the Azure AD tenant used for users
-currentTenantId=$(az login --tenant $aksTenantId --allow-no-subscriptions --query [0].tenantId --output tsv 2> /dev/null)
-
-if [[ -n $currentTenantId ]] && [[ $currentTenantId == $aksTenantId ]]; then
-    echo "Successfully logged in ["$aksTenantId"] tenant"
-else
-    echo "Failed to login to ["$aksTenantId"] tenant"
-    exit
-fi
 
 # Retrieve the objectId of the user in the Azure AD tenant used by AKS for user authentication 
 echo "Retrieving the objectId of the ["$userPrincipalName"] user..."
 userObjectId=$(az ad user show --upn-or-object-id $userPrincipalName --query objectId --output tsv 2> /dev/null)
 
 if [[ -n $userObjectId ]]; then
-    echo "["$userPrincipalName"] user already exists in ["$aksTenantId"] tenant with ["$userObjectId"] objectId"
+    echo "["$userPrincipalName"] user already exists in ["$tenantId"] tenant with ["$userObjectId"] objectId"
 else
     echo "Failed to retrieve the objectId of the ["$userPrincipalName"] user"
-    echo "Creating ["$userPrincipalName"] group in ["$aksTenantId"] tenant..."
-
-    # create user in Azure AD
-    userObjectId=$(az ad user create \
-    --display-name "$userDisplayName" \
-    --password $userPassword \
-    --user-principal-name $userPrincipalName \
-    --query objectId \
-    --output tsv)
-
-    if [[ $? == 0 ]]; then
-        echo "["$userPrincipalName"] user successfully created in ["$aksTenantId"] tenant with [$userObjectId] objectId"
-    else
-        echo "Failed to create ["$userPrincipalName"] user in ["$aksTenantId"] tenant"
-        exit
-    fi
-fi
-
-# check it the AKS admins group already exists in the Azure AD tenant
-echo "Checking if ["$aksAdminsGroup"] group actually exists in ["$aksTenantId"] tenant..."
-
-groupObjectId=$(az ad group show --group $aksAdminsGroup --query objectId --output tsv 2> /dev/null)
-
-if [[ -n $groupObjectId ]]; then
-    echo "["$aksAdminsGroup"] group already exists in ["$aksTenantId"] tenant with ["$groupObjectId"] objectId"
-else
-    echo "No ["$aksAdminsGroup"] group actually exists in ["$aksTenantId"] tenant"
-    echo "Creating ["$aksAdminsGroup"] group in ["$aksTenantId"] tenant..."
-
-    # create mail nickname for the admins group
-    email=${aksAdminsGroup,,}
-
-    # create admins group in Azure AD
-    groupObjectId=$(az ad group create \
-    --display-name $aksAdminsGroup \
-    --mail-nickname $email \
-    --query objectId \
-    --output tsv)
-
-    if [[ $? == 0 ]]; then
-        echo "["$aksAdminsGroup"] group successfully created in ["$aksTenantId"] tenant with [$groupObjectId] objectId"
-    else
-        echo "Failed to create ["$aksAdminsGroup"] group in ["$aksTenantId"] tenant"
-        exit
-    fi
-fi
-
-# check if the user is already a member of the admins group
-isMember=$(az ad group member check --group $groupObjectId --member-id $userObjectId --query value --output tsv)
-
-if [[ $isMember == "true" ]]; then
-    echo "["$userPrincipalName"] user is already a member of ["$aksAdminsGroup"] group in ["$aksTenantId"] tenant"
-else
-    # adding user the admins group
-    echo "Adding ["$userPrincipalName"] user as a member to ["$aksAdminsGroup"] group in ["$aksTenantId"] tenant..."
-    az ad group member add \
-    --group $groupObjectId \
-    --member-id $userObjectId &> /dev/null
-
-    if [[ $? == 0 ]]; then
-        echo "["$userPrincipalName"] user successfully added as a member to ["$aksAdminsGroup"] group in ["$aksTenantId"] tenant"
-    else
-        echo "Failed to add ["$userPrincipalName"] user as a member to ["$aksAdminsGroup"] group in ["$aksTenantId"] tenant"
-        exit
-    fi
+    exit
 fi
 
 # check if the server application already exists
-echo "Checking if ["$aksServerApplication"] server application actually exists in ["$aksTenantId"] tenant..."
+echo "Checking if ["$aksServerApplication"] server application actually exists in ["$tenantId"] tenant..."
 
-aksServerApplicationId="http://"$aksServerApplication"."$aksTenantName".onmicrosoft.com"
+aksServerApplicationId="http://"$aksServerApplication
+aksServerApplicationAppId=$(az ad app list --display-name $aksServerApplication --query [].appId --output tsv)
 
-az ad app show --id $aksServerApplicationId &> /dev/null
-
-if [[ $? != 0 ]]; then
-	echo "No ["$aksServerApplication"] server application actually exists in ["$aksTenantId"] tenant"
-    echo "Creating ["$aksServerApplication"] server application in ["$aksTenantId"] tenant..."
+if [[ -z $aksServerApplicationAppId ]]; then
+	echo "No ["$aksServerApplication"] server application actually exists in ["$tenantId"] tenant"
+    echo "Creating ["$aksServerApplication"] server application in ["$tenantId"] tenant..."
 
     # create the server application
     #--required-resource-accesses k8s-api-permissions-manifest.json \
@@ -160,9 +78,9 @@ if [[ $? != 0 ]]; then
     --output tsv)
 
     if [[ $? == 0 ]]; then
-        echo "["$aksServerApplication"] server application successfully created in ["$aksTenantId"] tenant with [$aksServerApplicationAppId] appId"
+        echo "["$aksServerApplication"] server application successfully created in ["$tenantId"] tenant with [$aksServerApplicationAppId] appId"
     else
-        echo "Failed to create ["$aksServerApplication"] server application in ["$aksTenantId"] tenant"
+        echo "Failed to create ["$aksServerApplication"] server application in ["$tenantId"] tenant"
         exit
     fi
 
@@ -218,27 +136,17 @@ if [[ $? != 0 ]]; then
         exit
     fi
 else
-	echo "["$aksServerApplication"] server application already exists in ["$aksTenantId"] tenant"
-    echo "Retrieving appId for ["$aksServerApplication"] server application..."
-    aksServerApplicationAppId=$(az ad app show --id $aksServerApplicationId --query appId --output tsv)
-
-    if [[ -n $aksServerApplicationAppId ]]; then
-        echo "Successfully retrieved ["$aksServerApplicationAppId"] appdId for the ["$aksServerApplication"] server application"
-    else
-        echo "Failed to retrieve the appId for the ["$aksServerApplication"] server application"
-        exit
-    fi
+	echo "["$aksServerApplication"] client application already exists in ["$tenantId"] tenant with [$aksServerApplicationAppId] appId"
 fi
 
 # check if the client application already exists
-echo "Checking if ["$aksClientApplication"] client application actually exists in ["$aksTenantId"] tenant..."
+echo "Checking if ["$aksClientApplication"] client application actually exists in ["$tenantId"] tenant..."
 
-aksClientApplicationId=$aksClientApplication"."$aksTenantName".onmicrosoft.com"
+aksClientApplicationAppId=$(az ad app list --display-name $aksClientApplication --query [].appId --output tsv)
 
-aksClientApplicationAppId=$(az ad app list --query "[?displayName=='$aksClientApplication'].appId" --output tsv)
 if [[ -z $aksClientApplicationAppId ]]; then
-	echo "No ["$aksClientApplication"] client application actually exists in ["$aksTenantId"] tenant"
-    echo "Creating ["$aksClientApplication"] client application in ["$aksTenantId"] tenant..."
+	echo "No ["$aksClientApplication"] client application actually exists in ["$tenantId"] tenant"
+    echo "Creating ["$aksClientApplication"] client application in ["$tenantId"] tenant..."
 
     # create the client application
     aksClientApplicationAppId=$(az ad app create \
@@ -255,9 +163,9 @@ if [[ -z $aksClientApplicationAppId ]]; then
     --output tsv)
 
     if [[ $? == 0 ]]; then
-        echo "["$aksClientApplication"] client application successfully created in ["$aksTenantId"] tenant with [$aksClientApplicationAppId] appId"
+        echo "["$aksClientApplication"] client application successfully created in ["$tenantId"] tenant with [$aksClientApplicationAppId] appId"
     else
-        echo "Failed to create ["$aksClientApplication"] client application in ["$aksTenantId"] tenant"
+        echo "Failed to create ["$aksClientApplication"] client application in ["$tenantId"] tenant"
         exit
     fi
 
@@ -299,17 +207,7 @@ if [[ -z $aksClientApplicationAppId ]]; then
         exit
     fi
 else
-	echo "["$aksClientApplication"] client application already exists in ["$aksTenantId"] tenant with [$aksClientApplicationAppId] appId"
-fi
-
-# login to the Azure AD tenant of the subscription hosting the AKS cluster
-currentTenantId=$(az login --subscription $subscriptionId --query [0].tenantId --output tsv 2> /dev/null)
-
-if [[ -n $currentTenantId ]] && [[ $currentTenantId == $tenantId ]]; then
-    echo "Successfully logged in ["$tenantId"] tenant"
-else
-    echo "Failed to login to ["$tenantId"] tenant"
-    exit
+	echo "["$aksClientApplication"] client application already exists in ["$tenantId"] tenant with [$aksClientApplicationAppId] appId"
 fi
 
 # get the last Kubernetes version available in the region
@@ -452,7 +350,7 @@ if [[ $? != 0 ]]; then
         --aad-server-app-id $aksServerApplicationAppId \
         --aad-server-app-secret $password \
         --aad-client-app-id $aksClientApplicationAppId \
-        --aad-tenant-id $aksTenantId \
+        --aad-tenant-id $tenantId \
         --workspace-resource-id $workspaceResourceId 1> /dev/null
     else
         az aks create \
@@ -469,7 +367,7 @@ if [[ $? != 0 ]]; then
         --aad-server-app-id $aksServerApplicationAppId \
         --aad-server-app-secret $password \
         --aad-client-app-id $aksClientApplicationAppId \
-        --aad-tenant-id $aksTenantId 1> /dev/null
+        --aad-tenant-id $tenantId 1> /dev/null
     fi
 
     if [[ $? == 0 ]]; then
@@ -541,11 +439,11 @@ else
     exit
 fi
 
-if [[ -z $groupObjectId ]]; then 
+if [[ -z $userObjectId ]]; then 
     exit
 fi
 
-echo "Creating admin cluster role binding for the ["$aksAdminsGroup"] user group..."
+echo "Creating admin cluster role binding for the ["$userPrincipalName"] user group..."
 # Use the following manifest to create a ClusterRoleBinding for the admins group in Azure AD
 # This cluster role binding provides full access to all the namespaces in the cluster
 # for more information on Kubernetes RBAC, see https://kubernetes.io/docs/reference/access-authn-authz/rbac/
@@ -559,5 +457,5 @@ roleRef:
   name: cluster-admin
 subjects:
 - apiGroup: rbac.authorization.k8s.io
-  kind: Group
-  name: \"$groupObjectId\"" | kubectl apply -f -
+  kind: User
+  name: \"$userObjectId\"" | kubectl apply -f -
